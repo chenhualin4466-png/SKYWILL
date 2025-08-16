@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SKYWILL | Product Catalog</title>
+  <!-- 外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* 主题变量 - 浅色默认 */
+    :root{
+      --primary: #1a202c; /* 深灰色 - 男士风格主色调 */
+      --accent: #3b82f6; /* 蓝色 - 时尚强调色 */
+      --dark-accent: #1e40af; /* 深蓝色 - 强调色深色版本 */
+      --muted: #64748b; /* 柔和的灰色 - 辅助文字 */
+      --card: #ffffff;
+      --light-gray: #f1f5f9;
+      --border-gray: #cbd5e1;
+      --text-on-accent: #ffffff;
+      --hero-overlay: rgba(0,0,0,0.55);
+    }
+    /* 深色主题变量 */
+    :root.dark-mode {
+      --primary: #f1f5f9; /* 浅色文字 */
+      --accent: #60a5fa; /* 亮蓝色 - 强调色 */
+      --dark-accent: #3b82f6; /* 蓝色 - 强调色深色版本 */
+      --muted: #94a3b8; /* 柔和的灰色 - 辅助文字 */
+      --card: #1e293b; /* 深色卡片 */
+      --light-gray: #0f172a; /* 深色背景 */
+      --border-gray: #334155; /* 深色边框 */
+      --text-on-accent: #ffffff;
+      --hero-overlay: rgba(0,0,0,0.75);
+    }
+    html,body{height:100%}
+    body{font-family:Inter, "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue"; background:var(--light-gray); color:var(--primary); -webkit-font-smoothing:antialiased; transition: background-color 0.3s ease;}
+    header{backdrop-filter:blur(8px); transition: all 0.3s ease; background-color: var(--card); background-color: rgba(255,255,255,0.95);}
+    .dark-mode header {background-color: rgba(15,23,42,0.95);}
+    
+    .nav-row{display:flex;align-items:center;justify-between;height:16vh;max-height:80px;}
+    .brand-section{display:flex;align-items:center;gap:2px;}
+    .nav-controls{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+    .nav-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;background:var(--card);border:1px solid var(--border-gray);font-size:12px;cursor:pointer; white-space:nowrap; transition: all 0.2s ease; color: var(--primary);}
+    .nav-btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(26,32,44,0.08);border-color: rgba(59,130,246,0.3);}
+    .nav-btn.primary{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent);}
+    .nav-btn.primary:hover{background:var(--dark-accent);border-color:var(--dark-accent);}
+    .input-inline{padding:5px 10px;border-radius:8px;border:1px solid var(--border-gray);background:var(--card);font-size:12px; transition: all 0.2s ease; color: var(--primary);}
+    .input-inline:focus{outline:none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15);}
+    .hero-reduced{height:30vh;min-height:160px; position: relative; overflow: hidden;}
+    
+    /* 产品网格布局 */
+    .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem}
+    .product-grid.multi-image{grid-template-columns:repeat(3,1fr);}
+    @media (max-width:1200px){ 
+      .product-grid{grid-template-columns:repeat(3,1fr)} 
+      .product-grid.multi-image{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width:900px){ 
+      .product-grid{grid-template-columns:repeat(2,1fr)} 
+      .product-grid.multi-image{grid-template-columns:repeat(1,1fr)}
+    }
+    @media (max-width:600px){ 
+      .product-grid{grid-template-columns:repeat(1,1fr)} 
+      .product-grid.multi-image{grid-template-columns:repeat(1,1fr)}
+    }
+    
+    /* 产品卡片样式 - 单图模式保持原样 */
+    .image-card{
+      background:var(--card);
+      border-radius:12px;
+      padding:12px;
+      box-shadow:0 4px 15px rgba(26,32,44,0.03);
+      position:relative;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      height: 380px;
+      transition: all 0.3s ease;
+      cursor: pointer; /* 点击卡片查看详情 */
+    }
+    
+    .image-card:hover{
+      transform: translateY(-5px); 
+      box-shadow:0 10px 25px rgba(26,32,44,0.09);
+    }
+    
+    /* 单图模式图片区域 - 基础样式，具体高度由JS动态设置 */
+    .img-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fafafa;
+      border-radius:10px;
+      overflow:hidden; 
+      position: relative;
+      transition: flex 0.3s ease;
+    }
+    
+    /* 图片显示调整 - 等比例缩放并显示全图 */
+    .img-wrap img, .secondary-img img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transition: transform 0.3s ease;
+    }
+    
+    .img-wrap:hover img, .secondary-img:hover img {
+      transform: scale(1.03);
+    }
+    
+    /* 多图模式布局 - 核心调整 */
+    .image-card.multi-image{
+      flex-direction:row;
+      gap:12px;
+      height: 420px; /* 增加多图模式卡片高度 */
+    }
+    
+    /* 多图模式主图区域：宽度60%，包含主图和文字 */
+    .image-card.multi-image .main-content {
+      flex: 0 0 60%;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    /* 多图模式主图：高度由JS动态设置 */
+    .image-card.multi-image .img-wrap {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fafafa;
+      border-radius:10px;
+      overflow:hidden; 
+      position: relative;
+      transition: flex 0.3s ease;
+    }
+    
+    /* 多图模式文字区域：高度由JS动态设置 */
+    .image-card.multi-image .meta {
+      display:flex; 
+      flex-direction:column; 
+      gap:5px; 
+      padding: 5px 0; /* 增加内边距确保内容不被截断 */
+      transition: flex 0.3s ease;
+    }
+    
+    /* 多图模式副图区域：宽度40%，包含两张副图 */
+    .image-card.multi-image .secondary-images {
+      flex: 0 0 40%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+    }
+    
+    /* 副图样式：两张副图高度均分，总高度等于左侧主图加文字 */
+    .secondary-img {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    /* 多图模式下只有一张图片时，空白占位 */
+    .secondary-img.empty {
+      background-color: var(--light-gray);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    
+    /* 空白占位显示提示文字 */
+    .secondary-img.empty::before {
+      content: "+ 添加图片";
+    }
+    
+    /* 文字区域样式 - 确保所有字段可见 */
+    .meta { 
+      margin-top:12px; 
+      display:flex; 
+      flex-direction:column; 
+      gap:5px; 
+      flex:1 1 auto; 
+      justify-content:flex-end; 
+      padding: 5px 0; /* 增加内边距确保内容不被截断 */
+      transition: flex 0.3s ease;
+    }
+    
+    .meta-line { 
+      font-size:13px; 
+      color:var(--muted); 
+      overflow:hidden; 
+      text-overflow:ellipsis; 
+      white-space:nowrap; 
+      display: block !important; /* 强制显示 */
+      height: auto !important; /* 确保高度足够 */
+    }
+    .sku-price { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 2px; 
+    }
+    .sku-line { 
+      font-weight:600; 
+      color:var(--primary); 
+      font-size:15px; 
+      overflow:hidden; 
+      text-overflow:ellipsis; 
+      white-space:nowrap; 
+    }
+    .material-weight { 
+      display:flex; 
+      justify-content:space-between; 
+      gap:8px; 
+    }
+    .price { 
+      font-weight:600; 
+      color:red; 
+    }
+    .weight { 
+      color:var(--muted); 
+    }
+    .small-ellipsis{ 
+      overflow:hidden; 
+      text-overflow:ellipsis; 
+      white-space:nowrap; 
+    }
+    
+    /* 双击编辑输入框样式 */
+    .edit-input {
+      width: 100%;
+      padding: 4px 6px;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      background-color: var(--card);
+      color: var(--primary);
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    
+    /* 选择框和删除按钮 - 默认隐藏 */
+    .select-box, .x-delete {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    /* 鼠标悬停时显示 */
+    .image-card:hover .select-box, 
+    .image-card:hover .x-delete {
+      opacity: 1;
+    }
+    
+    /* 已选中时保持显示 */
+    .image-card.selected .select-box,
+    .image-card.selected .x-delete {
+      opacity: 1;
+    }
+    
+    .select-box{
+      position:absolute;
+      left:12px;
+      top:12px;
+      z-index:12;
+      background:rgba(255,255,255,0.9);
+      border-radius:6px;
+      padding:4px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #e5e7eb; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .dark-mode .select-box {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: #334155;
+    }
+    .select-box input[type="checkbox"]{
+      width:16px;
+      height:16px; 
+      accent-color: var(--accent);
+    }
+    .x-delete{
+      position:absolute;
+      right:12px;
+      top:12px;
+      width:30px;
+      height:30px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--card);
+      border:1px solid rgba(0,0,0,0.06);
+      color:#ef4444;
+      font-weight:700;
+      cursor:pointer; 
+      transition: all 0.2s ease;
+      z-index: 12;
+    }
+    .x-delete:hover{
+      transform:scale(1.1);
+      box-shadow:0 4px 12px rgba(239,68,68,0.15);
+      background-color: #fef2f2;
+    }
+    .dark-mode .x-delete {
+      background-color: var(--card);
+      border-color: rgba(255,255,255,0.1);
+    }
+    .dark-mode .x-delete:hover {
+      background-color: #3f1e1e;
+    }
+    
+    /* 加载动画 */
+    .loading-overlay{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(255,255,255,0.9);
+      z-index:90;
+      display:none; 
+      backdrop-filter: blur(4px);
+    }
+    .dark-mode .loading-overlay {
+      background: rgba(15,23,42,0.9);
+    }
+    .loading-spinner{
+      width:48px;height:48px;
+      border-radius:50%;
+      border:6px solid #f3f4f6;
+      border-top-color:var(--accent);
+      animation:spin 1s linear infinite
+    }
+    .dark-mode .loading-spinner {
+      border-color: #1e293b;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
+    /* 拖拽相关样式 */
+    .draggable { cursor:grab; }
+    .dragging { opacity:0.7; transform:scale(0.98); }
+    
+    /* 品牌故事模块 */
+    .brand-story { 
+      background: var(--card); 
+      border-radius: 16px; 
+      padding: 2rem; 
+      margin: 2rem 0; 
+      height: 650px; 
+      box-shadow: 0 10px 30px rgba(26,32,44,0.05);
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    @media (max-width: 900px) {
+      .brand-story {
+        flex-direction: column;
+        height: auto;
+        padding: 1.5rem;
+      }
+    }
+    .brand-story-image {
+      flex: 0 0 35%;
+      height: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    @media (max-width: 900px) {
+      .brand-story-image {
+        width: 100%;
+        height: 200px;
+        flex: none;
+      }
+    }
+    .brand-story-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+    .brand-story:hover .brand-story-image img {
+      transform: scale(1.03);
+    }
+    .brand-story-content {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .brand-story h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--primary);
+      position: relative;
+      padding-bottom: 0.5rem;
+    }
+    .brand-story h2:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: var(--accent);
+    }
+    .brand-story p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .brand-story .advantages {
+      margin: 1rem 0;
+    }
+    .brand-story .advantages strong {
+      color: var(--primary);
+    }
+    .contact-info {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.8rem;
+    }
+    @media (max-width: 900px) {
+      .contact-info {
+        grid-template-columns: 1fr;
+      }
+    }
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .contact-item i {
+      color: var(--accent);
+      width: 20px;
+    }
+    
+    /* Excel记忆功能提示样式 */
+    .excel-memory-indicator {
+      font-size: 11px;
+      color: var(--accent);
+      margin-left: 5px;
+    }
+    .excel-reset-btn {
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      margin-left: 5px;
+      text-decoration: underline;
+    }
+    .excel-reset-btn:hover {
+      color: var(--primary);
+    }
+    
+    /* 拖放提示样式 */
+    .drag-over {
+      background-color: rgba(59, 130, 246, 0.05);
+      border: 2px dashed var(--accent);
+    }
+    
+    /* 导航栏统计信息样式 */
+    .nav-stats {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-left: 15px;
+      padding-left: 15px;
+      border-left: 1px solid var(--border-gray);
+    }
+    
+    .nav-stat-item {
+      text-align: center;
+    }
+    
+    .nav-stat-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    
+    .nav-stat-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    
+    @media (max-width: 768px) {
+      .nav-stats {
+        display: none;
+      }
+      
+      .mobile-stats {
+        display: block !important;
+      }
+    }
+    
+    .mobile-stats {
+      display: none;
+      margin: 10px 0;
+      padding: 10px;
+      background: var(--card);
+      border-radius: 8px;
+      border: 1px solid var(--border-gray);
+    }
+    
+    /* 删除按钮文字红色 */
+    .delete-btn-text {
+      color: #ef4444;
+    }
+    /* 1. 深色/浅色主题切换按钮样式 */
+    .theme-toggle {
+      position: relative;
+      width: 40px;
+      height: 20px;
+      border-radius: 10px;
+      background-color: var(--border-gray);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin: 0 5px;
+    }
+    .theme-toggle.dark-mode {
+      background-color: var(--accent);
+    }
+    .theme-toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      background-color: white;
+      transition: transform 0.3s ease;
+    }
+    .theme-toggle.dark-mode::after {
+      transform: translateX(20px);
+    }
+    /* 2. 搜索框样式 */
+    .search-container {
+      position: relative;
+      flex: 1;
+      max-width: 300px;
+      margin: 0 10px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 5px 10px 5px 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border-gray);
+      background: var(--card);
+      font-size: 12px;
+      transition: all 0.2s ease;
+      color: var(--primary);
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+    .search-clear.visible {
+      display: block;
+    }
+    /* 3. 产品详情模态框样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .dark-mode .modal-overlay {
+      background-color: rgba(0, 0, 0, 0.9);
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .product-modal {
+      background-color: var(--card);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .product-modal {
+      transform: translateY(0);
+    }
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 101;
+      transition: all 0.2s ease;
+    }
+    .modal-close:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+      transform: rotate(90deg);
+    }
+    .modal-content {
+      padding: 20px;
+    }
+    .product-gallery {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .product-gallery {
+        grid-template-columns: 1fr;
+      }
+    }
+    .main-image-container {
+      background-color: #f9f9f9;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+    }
+    .dark-mode .main-image-container {
+      background-color: #0f172a;
+    }
+    .main-image {
+      max-width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+    }
+    .thumbnails-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .thumbnail-item {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 195px;
+    }
+    .dark-mode .thumbnail-item {
+      background-color: #0f172a;
+    }
+    .thumbnail-item:hover, .thumbnail-item.active {
+      opacity: 1;
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .thumbnail-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .product-details {
+      padding: 10px;
+      border-top: 1px solid var(--border-gray);
+    }
+    .detail-item {
+      margin-bottom: 15px;
+    }
+    .detail-label {
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+      display: inline-block;
+      min-width: 80px;
+    }
+    .detail-value {
+      font-size: 16px;
+      color: var(--primary);
+    }
+    .detail-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+    .price-detail {
+      font-size: 22px;
+      font-weight: 700;
+      color: red;
+      margin: 15px 0;
+    }
+    /* 英雄区深色模式调整 */
+    .hero-reduced .absolute.inset-0 {
+      filter: brightness(0.45);
+    }
+    .dark-mode .hero-reduced .absolute.inset-0 {
+      filter: brightness(0.3) contrast(1.2);
+    }
+    .dark-mode .hero-reduced {
+      color: #f8fafc;
+    }
+    .dark-mode .hero-reduced p {
+      color: #e2e8f0;
+    }
+    /* 页脚深色模式调整 */
+    footer {
+      background-color: white;
+      border-top: 1px solid var(--border-gray);
+    }
+    .dark-mode footer {
+      background-color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <!-- 加载动画 -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="text-center">
+      <div class="loading-spinner mb-3"></div>
+      <div id="loadingText" class="text-gray-700">处理中，请稍候...</div>
+    </div>
+  </div>
+  <!-- 产品详情模态框 -->
+  <div id="productModal" class="modal-overlay">
+    <div class="product-modal">
+      <div id="modalClose" class="modal-close">×</div>
+      <div class="modal-content">
+        <div class="product-gallery">
+          <div class="main-image-container">
+            <img id="modalMainImage" class="main-image" src="" alt="产品主图">
+          </div>
+          <div id="modalThumbnails" class="thumbnails-container">
+            <!-- 缩略图将通过JS动态生成 -->
+          </div>
+        </div>
+        <div class="product-details">
+          <h2 id="modalProductTitle" class="detail-title"></h2>
+          <div class="price-detail" id="modalProductPrice"></div>
+          <div class="detail-item">
+            <span class="detail-label">货号：</span>
+            <span id="modalProductSku" class="detail-value"></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">材质：</span>
+            <span id="modalProductMaterial" class="detail-value"></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">克重：</span>
+            <span id="modalProductWeight" class="detail-value"></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">颜色：</span>
+            <span id="modalProductColor" class="detail-value"></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">尺寸：</span>
+            <span id="modalProductSize" class="detail-value"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 导航栏 -->
+  <header class="fixed top-0 left-0 right-0 shadow-sm z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="nav-row">
+        <!-- 品牌区域 -->
+        <div class="brand-section">
+          <a class="flex items-center gap-2" href="#">
+            <span class="text-2xl font-bold">SKYWILL<span style="color:var(--accent)">Clothing</span></span>
+            <span class="text-sm text-gray-500 hidden md:inline">主题</span>
+          </a>
+        </div>
+        <!-- 导航控制区 -->
+        <div class="nav-controls">
+          <!-- 主题切换按钮 -->
+          <div id="themeToggle" class="theme-toggle" title="切换深色/浅色模式"></div>
+          
+          <!-- 图片模式切换按钮 -->
+          <div class="nav-btn-group">
+            <button id="singleImageModeBtn" class="nav-btn primary" title="单图模式">
+              <i class="fa fa-picture-o"></i><span class="hidden sm:inline">单图模式</span>
+            </button>
+            <button id="multiImageModeBtn" class="nav-btn" title="多图模式">
+              <i class="fa fa-th-large"></i><span class="hidden sm:inline">多图模式</span>
+            </button>
+          </div>
+          
+          <!-- 文件夹上传 -->
+          <label class="nav-btn" title="选择文件夹">
+            <i class="fa fa-folder-open"></i><span class="hidden sm:inline">选择文件夹</span>
+            <input id="folderInput" type="file" webkitdirectory directory multiple accept="image/*" style="display:none">
+          </label>
+          <!-- 图片上传 -->
+          <label class="nav-btn" title="选择图片">
+            <i class="fa fa-image"></i><span class="hidden sm:inline">选择图片</span>
+            <input id="fileInput" type="file" multiple accept="image/*" style="display:none">
+          </label>
+          <!-- Excel导入 -->
+          <div style="display: inline-flex; align-items: center;">
+            <label class="nav-btn" title="导入Excel（支持图片链接）">
+              <i class="fa fa-file-excel-o"></i><span class="hidden sm:inline" id="excelLabel">选择EXCEL</span>
+              <input id="excelInput" type="file" accept=".xlsx,.xls" style="display:none">
+            </label>
+            <span id="excelMemoryIndicator" class="excel-memory-indicator hidden"></span>
+            <span id="excelResetBtn" class="excel-reset-btn hidden">重置</span>
+            <span class="excel-memory-indicator" style="font-size:10px;">
+              多图模式:每行最多3张图
+            </span>
+          </div>
+          <!-- 全选按钮 -->
+          <button id="selectAllBtn" class="nav-btn primary" title="全选产品">
+            <i class="fa fa-check-square-o"></i><span class="hidden sm:inline">全选</span>
+          </button>
+          <!-- 取消全选按钮 -->
+          <button id="deselectAllBtn" class="nav-btn" title="取消全选">
+            <i class="fa fa-square-o"></i><span class="hidden sm:inline">取消全选</span>
+          </button>
+          <!-- 排序选择 -->
+          <select id="sortSelect" class="input-inline" title="排序方式">
+            <option value="manual">手动排序</option>
+            <option value="sku">按货号</option>
+            <option value="price-asc">价格从低到高</option>
+            <option value="price-desc">价格从高到低</option>
+            <option value="material">按材质</option>
+          </select>
+          <!-- 批量重命名 -->
+          <input id="batchPrefix" class="input-inline" placeholder="货号前缀 (如 BS)" style="width:140px" />
+          <button id="batchRenameBtn" class="nav-btn" title="批量改货号">
+            <i class="fa fa-i-cursor"></i><span class="hidden sm:inline">批量改货号</span>
+          </button>
+          <!-- 删除所选 -->
+          <button id="deleteSelectedBtn" class="nav-btn" title="删除所选">
+            <i class="fa fa-trash"></i><span class="hidden sm:inline delete-btn-text">删除所选</span>
+          </button>
+          <!-- 导出PDF -->
+          <button id="exportPdfBtn" class="nav-btn primary" title="导出PDF（A4 3×4）">
+            <i class="fa fa-file-pdf-o"></i><span class="hidden sm:inline">导出PDF</span>
+          </button>
+          <!-- 导航栏统计信息 -->
+          <div class="nav-stats">
+            <div class="nav-stat-item">
+              <div id="navStatLabel" class="nav-stat-label">产品数量</div>
+              <div id="navStatTotal" class="nav-stat-value">0</div>
+            </div>
+            <div class="nav-stat-item">
+              <div class="nav-stat-label">已勾选</div>
+              <div id="navStatSelected" class="nav-stat-value">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- 主内容区 -->
+  <main class="pt-24 pb-12">
+    <!-- 英雄区 -->
+    <section class="hero-reduced relative bg-primary text-white mb-6">
+      <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://img.ma3you.com/media/uploads/img_files/b784e87cd8c030aeb6a5aa10050fa84f/f9a2328cec304c6794306ceff84d3e08.png?x-oss-process=image/auto-orient,1/interlace,1/resize,m_lfit,w_900/quality,Q_95/format,jpg');filter:brightness(0.45)"></div>
+      <div class="container mx-auto px-4 py-6 relative z-10">
+        <div class="max-w-2xl">
+          <h1 class="font-bold text-2xl md:text-3xl">重新定义男士时尚/Redefining men's fashion</h1>
+          <p class="text-gray-200 mt-2 text-lg">精选优质面料，匠心工艺打造，展现现代都市男性的自信与品味。</p>
+          <p class="text-gray-200 mt-2 text-lg">Selected high-quality fabrics and craftsmanship show the confidence and taste of modern urban men.</p>
+        </div>
+      </div>
+    </section>
+    <!-- 产品管理区 -->
+    <section class="container mx-auto px-4">
+      <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center w-full md:w-auto">
+          <h2 class="text-2xl font-semibold mr-4">产品展示 / Product Display</h2>
+          
+          <!-- 搜索框 -->
+          <div class="search-container">
+            <i class="fa fa-search search-icon"></i>
+            <input type="text" id="productSearch" class="search-input" placeholder="搜索货号、材质、颜色...">
+            <i id="searchClear" class="fa fa-times search-clear"></i>
+          </div>
+        </div>
+        
+        <!-- 移动端统计信息 -->
+        <div class="mobile-stats">
+          <div class="text-sm text-gray-500" id="mobileStatLabel">产品数量</div>
+          <div id="mobileStatTotal" class="text-xl font-bold mt-1">0</div>
+          <div class="text-sm text-gray-500 mt-2">已勾选：<span id="mobileStatSelected" class="text-accent font-medium">0</span></div>
+        </div>
+      </div>
+      <!-- 产品网格 -->
+      <div id="gallery" class="product-grid"></div>
+      <div id="emptyTips" class="text-center text-gray-500 py-12">暂无图片，请使用顶部上传按钮。</div>
+      <div id="searchNoResult" class="text-center text-gray-500 py-12 hidden">没有找到匹配的产品，请尝试其他关键词。</div>
+    </section>
+    <!-- 品牌故事模块 -->
+    <section class="container mx-auto px-4">
+      <div class="brand-story">
+        <div class="brand-story-image">
+          <img src="https://img.ma3you.com/media/uploads/img_files/b784e87cd8c030aeb6a5aa10050fa84f/99657cea167d4ea5a7b131b41e88bff6.jpg?x-oss-process=image/auto-orient,1/interlace,1/resize,m_lfit,w_900/quality,Q_95/format,jpg" alt="Urban Threads 品牌形象">
+        </div>
+        <div class="brand-story-content">
+          <h2>关于我们/about Us</h2>
+          <p>YIWU SKYWILL IMP&EXP was established on the year 2017.Our company is located in YIWU,China. We are professional in customization of the T shirt, Polo-shirt and hoodies.
+We will mock your logo on the sample for your approval and once the sample is ready we will also send it to you for approval.
+  Keep the production in high quality is our pursuit We have a professional QC team to make sure it. They follow each production step strictly,like fabric checking, logo printing, size cutting, material assignment, packing.Once we found any defect we will update it. With this QC system we have high confidence to accept your third-party company’s inspection.
+  Our sales team can speak English fluently,with the rich international business knowledge, they can easily understand what you need and give you a professional and quick solution. Since there is rich sources of logistic in YIWU, we can offer a quick and economic logistic solution as well.  
+With our constant effor on products and services, we gain the trust from many clients. Their repeat orders each month is the best approval! 
+We are looking forward to built a long term cooperation relationship with you soon.Sincerely to cooperate with you.</p>
+          
+          <div class="advantages">
+            <p><strong>我们的优势：</strong>精选全球优质面料，坚持环保生产理念，每一件产品都经过严格的质量把控，确保为客户提供卓越的穿着体验。</p>
+            <p><strong>Our Advantages：</strong>We select high-quality fabrics from around the world and adhere to the concept of environmentally friendly production. Each product undergoes strict quality control to ensure that we provide customers with an excellent wearing experience.</p>
+          </div>
+          
+          <div class="contact-info">
+            <div class="contact-item">
+              <i class="fa fa-user"></i>
+              <span>Contact：Icy</span>
+            </div>
+            <div class="contact-item">
+              <i class="fa fa-phone"></i>
+              <span>Telephone：+86 15268610613</span>
+            </div>
+            <div class="contact-item">
+              <i class="fa fa-whatsapp"></i>
+              <span>WeChat/WhatsApp：+86 15268610613</span>
+            </div>
+            <div class="contact-item">
+              <i class="fa fa-envelope"></i>
+              <span>E-Mail：icy@eskywill.com</span>
+            </div>
+            <div class="contact-item" style="grid-column: span 2;">
+              <i class="fa fa-map-marker"></i>
+              <span>address：6th Floor, No. 333, Wang Road, Beiyuan Street, Yiwu City, Zhejiang Province, China</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <!-- 页脚 -->
+  <footer class="py-6 mt-8">
+    <div class="container mx-auto text-center text-sm text-gray-500">© 2025 SKYWILL Clothing • 制作：陈华林 sky</div>
+  </footer>
+  <!-- 产品卡片模板 -->
+  <template id="cardTpl">
+    <div class="image-card draggable" draggable="true">
+      <div class="select-box"><input type="checkbox" class="chk" /></div>
+      <div class="x-delete" title="删除">×</div>
+      
+      <!-- 单图模式内容 -->
+      <div class="img-wrap">
+        <img src="" alt="产品预览" draggable="false" />
+      </div>
+      <div class="meta">
+        <div class="sku-price">
+          <div class="sku-line small-ellipsis" data-field="sku"></div>
+          <div class="price small-ellipsis" data-field="price"></div>
+        </div>
+        <div class="material-weight">
+          <div class="material meta-line small-ellipsis" data-field="material"></div>
+          <div class="weight small-ellipsis" data-field="weight"></div>
+        </div>
+        <div class="color meta-line small-ellipsis" data-field="color"></div>
+        <div class="size meta-line small-ellipsis" data-field="size"></div>
+      </div>
+      
+      <!-- 多图模式内容结构 -->
+      <div class="main-content">
+        <div class="img-wrap">
+          <img src="" alt="产品主图" draggable="false" />
+        </div>
+        <div class="meta">
+          <div class="sku-price">
+            <div class="sku-line small-ellipsis" data-field="sku"></div>
+            <div class="price small-ellipsis" data-field="price"></div>
+          </div>
+          <div class="material-weight">
+            <div class="material meta-line small-ellipsis" data-field="material"></div>
+            <div class="weight small-ellipsis" data-field="weight"></div>
+          </div>
+          <div class="color meta-line small-ellipsis" data-field="color"></div>
+          <div class="size meta-line small-ellipsis" data-field="size"></div>
+        </div>
+      </div>
+      <div class="secondary-images">
+        <div class="secondary-img"><img src="" alt="产品副图1" draggable="false" /></div>
+        <div class="secondary-img"><img src="" alt="产品副图2" draggable="false" /></div>
+      </div>
+    </div>
+  </template>
+  <script>
+  /***********************
+   * 状态与工具函数
+   ***********************/
+  let products = []; // 产品数据数组
+  let dragSrcId = null;
+  let excelMemoryData = null; // 存储Excel记忆数据
+  let imageMode = 'single'; // 图片模式：single 或 multi
+  let searchQuery = ''; // 搜索关键词
+  const cardTpl = document.getElementById('cardTpl');
+  // DOM元素引用
+  const folderInput = document.getElementById('folderInput');
+  const fileInput = document.getElementById('fileInput');
+  const excelInput = document.getElementById('excelInput');
+  const excelLabel = document.getElementById('excelLabel');
+  const excelMemoryIndicator = document.getElementById('excelMemoryIndicator');
+  const excelResetBtn = document.getElementById('excelResetBtn');
+  const gallery = document.getElementById('gallery');
+  const emptyTips = document.getElementById('emptyTips');
+  const searchNoResult = document.getElementById('searchNoResult');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const deselectAllBtn = document.getElementById('deselectAllBtn');
+  const batchPrefix = document.getElementById('batchPrefix');
+  const batchRenameBtn = document.getElementById('batchRenameBtn');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const sortSelect = document.getElementById('sortSelect');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  const singleImageModeBtn = document.getElementById('singleImageModeBtn');
+  const multiImageModeBtn = document.getElementById('multiImageModeBtn');
+  
+  // 新增元素：主题切换
+  const themeToggle = document.getElementById('themeToggle');
+  
+  // 新增元素：搜索功能
+  const productSearch = document.getElementById('productSearch');
+  const searchClear = document.getElementById('searchClear');
+  
+  // 新增元素：产品详情模态框
+  const productModal = document.getElementById('productModal');
+  const modalClose = document.getElementById('modalClose');
+  const modalMainImage = document.getElementById('modalMainImage');
+  const modalThumbnails = document.getElementById('modalThumbnails');
+  const modalProductTitle = document.getElementById('modalProductTitle');
+  const modalProductPrice = document.getElementById('modalProductPrice');
+  const modalProductSku = document.getElementById('modalProductSku');
+  const modalProductMaterial = document.getElementById('modalProductMaterial');
+  const modalProductWeight = document.getElementById('modalProductWeight');
+  const modalProductColor = document.getElementById('modalProductColor');
+  const modalProductSize = document.getElementById('modalProductSize');
+  
+  // 统计信息元素
+  const navStatTotal = document.getElementById('navStatTotal');
+  const navStatSelected = document.getElementById('navStatSelected');
+  const navStatLabel = document.getElementById('navStatLabel');
+  const mobileStatTotal = document.getElementById('mobileStatTotal');
+  const mobileStatSelected = document.getElementById('mobileStatSelected');
+  const mobileStatLabel = document.getElementById('mobileStatLabel');
+  // 生成唯一ID
+  function uid(){ return 'p' + Date.now() + Math.floor(Math.random()*9999); }
+  
+  // 显示加载状态
+  function showLoading(msg='处理中，请稍候...'){ 
+    loadingText.textContent = msg; 
+    loadingOverlay.style.display='flex'; 
+  }
+  
+  // 隐藏加载状态
+  function hideLoading(){ loadingOverlay.style.display='none'; }
+  
+  // 更新统计信息
+  function updateStats(){ 
+    // 获取产品数量（按基础货号去重）
+    const baseSkus = new Set();
+    const filteredProducts = getFilteredProducts();
+    
+    filteredProducts.forEach(p => {
+      baseSkus.add(getBaseSku(p.sku));
+    });
+    const productCount = baseSkus.size;
+    const imageCount = filteredProducts.length;
+    
+    // 根据当前模式显示不同的统计数据
+    if (imageMode === 'multi') {
+      navStatTotal.textContent = productCount;
+      navStatLabel.textContent = '产品数量';
+      mobileStatTotal.textContent = productCount;
+      mobileStatLabel.textContent = '产品数量';
+    } else {
+      navStatTotal.textContent = imageCount;
+      navStatLabel.textContent = '图片数量';
+      mobileStatTotal.textContent = imageCount;
+      mobileStatLabel.textContent = '图片数量';
+    }
+    
+    // 计算已选择的产品/图片数量
+    const selectedItems = filteredProducts.filter(p => p._selected);
+    let selectedCount = 0;
+    
+    if (imageMode === 'multi') {
+      // 多图模式下统计已选择的产品数量
+      const selectedSkus = new Set();
+      selectedItems.forEach(p => {
+        selectedSkus.add(getBaseSku(p.sku));
+      });
+      selectedCount = selectedSkus.size;
+    } else {
+      // 单图模式下统计已选择的图片数量
+      selectedCount = selectedItems.length;
+    }
+    
+    navStatSelected.textContent = selectedCount;
+    mobileStatSelected.textContent = selectedCount;
+  }
+  // 提取基础货号（去除括号中的数字）
+  function getBaseSku(sku) {
+    if (!sku) return '';
+    // 匹配并去除 (数字) 后缀
+    const baseSku = sku.replace(/\(\d+\)$/, '').trim();
+    return baseSku || sku;
+  }
+  // 提取货号的数字后缀
+  function getSkuSuffix(sku) {
+    if (!sku) return Infinity; // 没有货号视为最大后缀，排在后面
+    const match = sku.match(/\(\d+\)$/);
+    return match ? parseInt(match[1]) : -1; // 没有后缀的返回-1，排在最前面
+  }
+  // 获取同一组的图片（主图+副图）
+  function getImageGroup(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return [product];
+    
+    const baseSku = getBaseSku(product.sku);
+    // 找到所有同一基础货号的产品
+    const group = products.filter(p => {
+      return getBaseSku(p.sku) === baseSku;
+    });
+    
+    // 排序：无数字后缀的在前，有数字后缀的按数字大小排序
+    group.sort((a, b) => {
+      const aSuffix = getSkuSuffix(a.sku);
+      const bSuffix = getSkuSuffix(b.sku);
+      
+      return aSuffix - bSuffix;
+    });
+    
+    return group;
+  }
+  /***********************
+   * 1. 深色/浅色主题切换功能
+   ***********************/
+  // 初始化主题
+  function initTheme() {
+    const savedTheme = localStorage.getItem('preferredTheme');
+    const isDarkMode = savedTheme === 'dark' || 
+                      (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark-mode');
+      themeToggle.classList.add('dark-mode');
+    }
+  }
+  // 切换主题
+  function toggleTheme() {
+    const isDarkMode = document.documentElement.classList.toggle('dark-mode');
+    themeToggle.classList.toggle('dark-mode', isDarkMode);
+    
+    // 保存用户偏好
+    localStorage.setItem('preferredTheme', isDarkMode ? 'dark' : 'light');
+  }
+  /***********************
+   * 2. 产品搜索功能
+   ***********************/
+  // 根据搜索词过滤产品
+  function getFilteredProducts() {
+    if (!searchQuery.trim()) {
+      return [...products];
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return products.filter(product => {
+      // 搜索范围：SKU、材质、颜色
+      const skuMatch = product.sku && product.sku.toLowerCase().includes(query);
+      const materialMatch = product.material && product.material.toLowerCase().includes(query);
+      const colorMatch = product.color && product.color.toLowerCase().includes(query);
+      
+      return skuMatch || materialMatch || colorMatch;
+    });
+  }
+  // 执行搜索
+  function performSearch(query) {
+    searchQuery = query;
+    renderGallery();
+    
+    // 更新搜索UI
+    if (query.trim()) {
+      searchClear.classList.add('visible');
+    } else {
+      searchClear.classList.remove('visible');
+    }
+  }
+  // 清除搜索
+  function clearSearch() {
+    productSearch.value = '';
+    searchClear.classList.remove('visible');
+    performSearch('');
+  }
+  /***********************
+   * 3. 产品详情查看功能
+   ***********************/
+  // 打开产品详情
+  function openProductDetail(productId) {
+    const group = getImageGroup(productId);
+    if (!group || group.length === 0) return;
+    
+    const mainProduct = group[0];
+    
+    // 设置主图和详情信息
+    modalMainImage.src = mainProduct.dataUrl;
+    modalProductTitle.textContent = mainProduct.name || `产品 ${mainProduct.sku || ''}`;
+    modalProductPrice.textContent = mainProduct.price ? `¥${mainProduct.price}` : '价格未设置';
+    modalProductSku.textContent = mainProduct.sku || '未设置';
+    modalProductMaterial.textContent = mainProduct.material || '未设置';
+    modalProductWeight.textContent = mainProduct.weight || '未设置';
+    modalProductColor.textContent = mainProduct.color || '未设置';
+    modalProductSize.textContent = mainProduct.size || '未设置';
+    
+    // 生成缩略图
+    modalThumbnails.innerHTML = '';
+    group.forEach((product, index) => {
+      const thumbnail = document.createElement('div');
+      thumbnail.className = `thumbnail-item ${index === 0 ? 'active' : ''}`;
+      thumbnail.innerHTML = `<img class="thumbnail-image" src="${product.dataUrl}" alt="产品图片 ${index + 1}">`;
+      
+      thumbnail.addEventListener('click', () => {
+        modalMainImage.src = product.dataUrl;
+        // 更新活跃状态
+        document.querySelectorAll('.thumbnail-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        thumbnail.classList.add('active');
+      });
+      
+      modalThumbnails.appendChild(thumbnail);
+    });
+    
+    // 显示模态框
+    productModal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // 防止背景滚动
+  }
+  // 关闭产品详情
+  function closeProductDetail() {
+    productModal.classList.remove('active');
+    document.body.style.overflow = ''; // 恢复滚动
+  }
+  /***********************
+   * 4. 双击编辑字段功能
+   ***********************/
+  // 处理双击编辑功能
+  function setupDoubleClickEdit(card, product) {
+    // 为所有可编辑字段添加双击事件
+    const editableFields = card.querySelectorAll('[data-field]');
+    
+    editableFields.forEach(field => {
+      const fieldName = field.dataset.field;
+      
+      field.addEventListener('dblclick', (e) => {
+        e.stopPropagation(); // 防止触发卡片点击事件
+        
+        // 获取当前值
+        let currentValue = product[fieldName] || '';
+        
+        // 如果是价格字段，去除前面的¥符号
+        if (fieldName === 'price') {
+          currentValue = currentValue.toString().replace(/^¥/, '');
+        }
+        
+        // 创建输入框
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'edit-input';
+        input.value = currentValue;
+        
+        // 保存原始内容和元素
+        const originalContent = field.innerHTML;
+        const originalElement = field;
+        
+        // 替换为输入框
+        field.innerHTML = '';
+        field.appendChild(input);
+        
+        // 聚焦输入框
+        input.focus();
+        
+        // 处理失去焦点
+        input.addEventListener('blur', () => {
+          saveEditedValue(originalElement, product, fieldName, input.value);
+          // 编辑后重新计算文本行数并调整布局
+          adjustImageTextRatio(card, product);
+        });
+        
+        // 处理回车键
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            input.blur(); // 触发保存
+          } else if (e.key === 'Escape') {
+            // 取消编辑
+            originalElement.innerHTML = originalContent;
+          }
+        });
+      });
+    });
+  }
+  // 保存编辑后的值
+  function saveEditedValue(element, product, fieldName, value) {
+    // 处理价格字段，添加¥符号
+    if (fieldName === 'price' && value) {
+      product[fieldName] = value;
+      element.textContent = `¥${value}`;
+    } else {
+      product[fieldName] = value;
+      element.textContent = value || '';
+    }
+    
+    // 保存到本地存储
+    saveProducts();
+  }
+  /***********************
+   * 计算文本行数并调整图片与文字比例
+   ***********************/
+  function countTextLines(metaElement) {
+    // 计算文本内容的总行数
+    let lineCount = 0;
+    
+    // 计算每个字段的可视行数
+    metaElement.querySelectorAll('.meta-line, .sku-price').forEach(line => {
+      if (line.textContent.trim() !== '') {
+        // 对于单行显示的元素，有内容就算1行
+        lineCount += 1;
+      }
+    });
+    
+    return lineCount;
+  }
+  
+  function adjustImageTextRatio(card, product) {
+    // 确定当前模式下的图片和文字元素
+    let imgElement, metaElement;
+    
+    if (imageMode === 'multi') {
+      imgElement = card.querySelector('.main-content .img-wrap');
+      metaElement = card.querySelector('.main-content .meta');
+    } else {
+      imgElement = card.querySelector('.img-wrap');
+      metaElement = card.querySelector('.meta');
+    }
+    
+    // 计算文本行数
+    const lineCount = countTextLines(metaElement);
+    
+    // 根据行数设置不同的比例
+    if (lineCount <= 2) {
+      // 1-2行文字：图片85%，文字15%
+      imgElement.style.flex = '0 0 85%';
+      metaElement.style.flex = '0 0 15%';
+    } else {
+      // 超过2行文字：图片65%，文字35%
+      imgElement.style.flex = '0 0 65%';
+      metaElement.style.flex = '0 0 35%';
+    }
+  }
+  /***********************
+   * Excel记忆功能与图片链接加载
+   ***********************/
+  // 识别图片链接列 - 支持多列图片链接
+  function findImageUrlKeys(keys) {
+    const imageCandidates = ['图片地址', '图片url', 'image', 'imgurl', '图片1', '图片2', '图片3'];
+    return keys.filter(k => imageCandidates.some(c => k.toLowerCase().includes(c)));
+  }
+
+  // 下载图片并转换为dataURL
+  function downloadImageAsDataURL(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // 处理跨域
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        try {
+          resolve(canvas.toDataURL('image/jpeg'));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.onerror = () => reject(new Error(`无法加载图片: ${url}`));
+      img.src = url;
+    });
+  }
+
+  // 保存Excel数据到本地存储
+  function saveExcelMemory(data) {
+    try {
+      localStorage.setItem('excelMemory', JSON.stringify({
+        data: data,
+        timestamp: new Date().toISOString()
+      }));
+      return true;
+    } catch (e) {
+      console.error('保存Excel记忆数据失败:', e);
+      return false;
+    }
+  }
+  // 从本地存储加载Excel数据
+  function loadExcelMemory() {
+    try {
+      const stored = localStorage.getItem('excelMemory');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('加载Excel记忆数据失败:', e);
+    }
+    return null;
+  }
+  // 清除Excel记忆数据
+  function clearExcelMemory() {
+    localStorage.removeItem('excelMemory');
+    excelMemoryData = null;
+    updateExcelUI();
+  }
+  // 更新Excel相关UI
+  function updateExcelUI() {
+    if (excelMemoryData) {
+      const fileName = excelMemoryData.fileName || '数据.xlsx';
+      excelMemoryIndicator.textContent = `已加载: ${fileName}`;
+      excelMemoryIndicator.classList.remove('hidden');
+      excelResetBtn.classList.remove('hidden');
+      excelLabel.textContent = '重新选择EXCEL';
+    } else {
+      excelMemoryIndicator.classList.add('hidden');
+      excelResetBtn.classList.add('hidden');
+      excelLabel.textContent = '选择EXCEL';
+    }
+  }
+  // 应用Excel数据到产品（含图片链接处理）
+  function applyExcelData(json, fileName) {
+    if (!json || json.length === 0) {
+      return 0;
+    }
+    // 智能匹配列
+    const keys = Object.keys(json[0]);
+    const skuCandidates = ['sku','货号','编号','款号','品号','商品ID'];
+    let skuKey = keys.find(k=> skuCandidates.some(sc=> k.toLowerCase().includes(sc))) || keys[0];
+    const findKey = (cands)=> keys.find(k=> cands.some(c=> k.toLowerCase().includes(c))) || null;
+    const nameKey = findKey(['name','标题','商品标题']);
+    const priceKey = findKey(['price','价格','商品价格']);
+    const colorKey = findKey(['color','颜色']);
+    const materialKey = findKey(['material','材质','面料']);
+    const weightKey = findKey(['weight','克重','重量']);
+    const sizeKey = findKey(['size','尺码','尺寸']);
+    
+    // 新增：图片链接列识别（支持多列）
+    const imageUrlKeys = findImageUrlKeys(keys);
+    const isNewImageImport = imageUrlKeys.length > 0 && products.length === 0; // 首次导入且含图片链接
+    
+    // 保存列匹配信息以便下次使用
+    const columnMapping = {
+      skuKey, nameKey, priceKey, colorKey, materialKey, weightKey, sizeKey,
+      imageUrlKeys // 新增图片链接列映射（数组）
+    };
+    
+    let updated = 0;
+    const allImagePromises = []; // 用于批量处理图片下载
+    
+    json.forEach(row=>{
+      const sku = (row[skuKey] || '').toString().trim();
+      if (!sku) return;
+      
+      // 检查是否已有此SKU的产品
+      const existingProducts = products.filter(x=> 
+        getBaseSku((x.sku||'').toString().trim().toLowerCase()) === sku.toLowerCase()
+      );
+      
+      // 收集图片URL - 根据当前模式决定数量
+      const imageUrls = [];
+      if (imageUrlKeys.length > 0) {
+        // 单图模式只取最前面一列的图片
+        // 多图模式取前三列的图片
+        const maxImages = imageMode === 'single' ? 1 : 3;
+        
+        imageUrlKeys.forEach(key => {
+          if (row[key]) {
+            const url = row[key].toString().trim();
+            if (url && imageUrls.length < maxImages) {
+              imageUrls.push(url);
+            }
+          }
+        });
+      }
+      
+      // 如果有图片URL且是新产品
+      if (imageUrls.length > 0 && existingProducts.length === 0) {
+        // 创建产品基础信息
+        const baseProduct = {
+          name: nameKey ? row[nameKey] : sku,
+          price: priceKey ? row[priceKey] : '',
+          material: materialKey ? row[materialKey] : '',
+          weight: weightKey ? row[weightKey] : '',
+          color: colorKey ? row[colorKey] : '',
+          size: sizeKey ? row[sizeKey] : '',
+          _selected: false
+        };
+        
+        // 为每张图片创建一个产品（单图模式只创建1个，多图模式最多3个）
+        imageUrls.forEach((url, index) => {
+          // 创建产品对象，主图无后缀，副图加(2), (3)
+          const productSku = index === 0 ? sku : `${sku}(${index + 1})`;
+          const newProduct = {
+            id: uid(),
+            dataUrl: '', // 临时占位
+            fileName: `${productSku}_from_url`,
+            sku: productSku,
+            ...baseProduct
+          };
+          
+          products.push(newProduct);
+          updated++;
+          
+          // 下载图片并更新dataURL
+          allImagePromises.push(
+            downloadImageAsDataURL(url)
+              .then(dataUrl => {
+                newProduct.dataUrl = dataUrl;
+              })
+              .catch(err => {
+                console.warn(`跳过无效图片链接: ${url}`, err);
+                // 移除下载失败的产品
+                products = products.filter(p => p.id !== newProduct.id);
+                updated--;
+              })
+          );
+        });
+      } 
+      // 更新已有产品信息
+      else if (existingProducts.length > 0) {
+        existingProducts.forEach(product => {
+          if (nameKey) product.name = row[nameKey] || product.name;
+          if (priceKey) product.price = row[priceKey] !== undefined ? row[priceKey] : product.price;
+          if (colorKey) product.color = row[colorKey] || product.color;
+          if (materialKey) product.material = row[materialKey] || product.material;
+          if (weightKey) product.weight = row[weightKey] !== undefined ? row[weightKey] : product.weight;
+          if (sizeKey) product.size = row[sizeKey] || product.size;
+        });
+        updated++;
+      }
+    });
+    
+    // 处理图片下载队列
+    if (allImagePromises.length > 0) {
+      showLoading(`正在下载图片(${allImagePromises.length}张)...`);
+      Promise.allSettled(allImagePromises).then(() => {
+        hideLoading();
+        saveProducts();
+        renderGallery();
+      });
+    }
+    
+    // 保存Excel记忆数据（含图片链接列）
+    excelMemoryData = {
+      fileName, json, columnMapping, timestamp: new Date().toISOString()
+    };
+    saveExcelMemory(excelMemoryData);
+    updateExcelUI();
+    
+    return updated;
+  }
+  // 从记忆中应用Excel数据
+  function applyExcelDataFromMemory() {
+    if (!excelMemoryData || !excelMemoryData.json) return 0;
+    
+    showLoading('正在应用上次Excel数据...');
+    
+    const { json, fileName } = excelMemoryData;
+    const updated = applyExcelData(json, fileName);
+    
+    hideLoading();
+    if (updated > 0) {
+      alert(`已自动应用上次Excel数据，更新了 ${updated} 条产品信息`);
+      renderGallery();
+    }
+    
+    return updated;
+  }
+  /***********************
+   * 文件上传处理
+   ***********************/
+  // 处理图片文件上传
+  function handleImageFiles(files) {
+    try {
+      if (!files || files.length === 0) {
+        alert('请选择有效的图片文件');
+        return;
+      }
+
+      showLoading(`正在处理 ${files.length} 张图片...`);
+      
+      // 验证文件类型
+      const validFiles = Array.from(files).filter(file => {
+        const isValid = file.type.startsWith('image/');
+        if (!isValid) {
+          console.warn('跳过非图片文件:', file.name);
+        }
+        return isValid;
+      });
+      
+      if (validFiles.length === 0) {
+        hideLoading();
+        alert('所选文件中没有有效的图片文件');
+        return;
+      }
+
+      // 处理所有文件
+      let fileIndex = 0;
+      const processFile = (file) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          
+          reader.onload = function(e) {
+            // 从文件名提取货号（去掉扩展名）
+            let baseName = file.name.replace(/\.[^/.]+$/, "").trim();
+            
+            
+            // 创建产品对象
+            const product = {
+              id: uid(),
+              dataUrl: e.target.result,
+              fileName: file.name,
+              sku: baseName, // 使用文件名作为货号
+              name: '',
+              price: '',
+              material: '',
+              weight: '',
+              color: '',
+              size: '',
+              _selected: false
+            };
+            
+            products.push(product);
+            resolve();
+          };
+          
+          reader.onerror = function() {
+            console.error('文件读取错误:', reader.error);
+            alert(`读取文件 ${file.name} 失败: ${reader.error.message}`);
+            resolve();
+          };
+          
+          reader.readAsDataURL(file);
+        });
+      };
+      
+      // 按顺序处理所有文件
+      const processAllFiles = async () => {
+        for (const file of validFiles) {
+          await processFile(file);
+          fileIndex++;
+          // 更新加载进度
+          showLoading(`正在处理 ${fileIndex}/${validFiles.length} 张图片...`);
+        }
+        
+        saveProducts();
+        renderGallery();
+        hideLoading();
+      };
+      
+      processAllFiles();
+    } catch (error) {
+      console.error('处理图片时出错:', error);
+      hideLoading();
+      alert(`处理图片失败: ${error.message}`);
+    }
+  }
+  
+  // 处理Excel文件上传
+  function handleExcelFile(file) {
+    try {
+      if (!file) {
+        alert('未选择Excel文件');
+        return;
+      }
+      
+      showLoading('正在解析Excel文件...');
+      
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          // 获取第一个工作表
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // 转换为JSON
+          const json = XLSX.utils.sheet_to_json(worksheet);
+          
+          if (json.length === 0) {
+            hideLoading();
+            alert('Excel文件中未找到数据');
+            return;
+          }
+          
+          const updated = applyExcelData(json, file.name);
+          
+          hideLoading();
+          
+          if (updated > 0) {
+            alert(`成功导入 ${json.length} 条记录，更新了 ${updated} 条产品信息`);
+            renderGallery();
+          } else {
+            alert('未找到可更新的产品信息');
+          }
+        } catch (error) {
+          hideLoading();
+          console.error('Excel解析错误:', error);
+          alert(`解析Excel文件失败: ${error.message}`);
+        }
+      };
+      
+      reader.onerror = function() {
+        hideLoading();
+        console.error('文件读取错误:', reader.error);
+        alert(`文件读取失败: ${reader.error.message}`);
+      };
+      
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Excel上传错误:', error);
+      hideLoading();
+      alert(`上传失败: ${error.message}`);
+    }
+  }
+  
+  // 文件夹上传
+  folderInput.addEventListener('change', (e) => {
+    try {
+      console.log('选择了文件夹，文件数量:', e.target.files.length);
+      if (e.target.files.length === 0) {
+        alert('未选择任何文件');
+        return;
+      }
+      handleImageFiles(e.target.files);
+    } catch (error) {
+      console.error('文件夹上传错误:', error);
+      hideLoading();
+      alert(`上传失败: ${error.message}`);
+    } finally {
+      folderInput.value = ''; // 重置输入
+    }
+  });
+  
+  // 图片上传
+  fileInput.addEventListener('change', (e) => {
+    try {
+      console.log('选择了图片，文件数量:', e.target.files.length);
+      if (e.target.files.length === 0) {
+        alert('未选择任何图片');
+        return;
+      }
+      handleImageFiles(e.target.files);
+    } catch (error) {
+      console.error('图片上传错误:', error);
+      hideLoading();
+      alert(`上传失败: ${error.message}`);
+    } finally {
+      fileInput.value = ''; // 重置输入
+    }
+  });
+  
+  // Excel上传
+  excelInput.addEventListener('change', (e) => {
+    try {
+      console.log('选择了Excel文件');
+      if (!e.target.files || e.target.files.length === 0) {
+        alert('未选择Excel文件');
+        return;
+      }
+      handleExcelFile(e.target.files[0]);
+    } catch (error) {
+      console.error('Excel上传错误:', error);
+      hideLoading();
+      alert(`上传失败: ${error.message}`);
+    } finally {
+      excelInput.value = ''; // 重置输入
+    }
+  });
+  /***********************
+   * 渲染产品网格
+   ***********************/
+  function renderGallery(){
+    gallery.innerHTML = '';
+    
+    const filteredProducts = getFilteredProducts();
+    
+    // 控制空状态显示
+    if (products.length === 0) {
+      emptyTips.classList.remove('hidden');
+      searchNoResult.classList.add('hidden');
+    } else if (filteredProducts.length === 0) {
+      emptyTips.classList.add('hidden');
+      searchNoResult.classList.remove('hidden');
+    } else {
+      emptyTips.classList.add('hidden');
+      searchNoResult.classList.add('hidden');
+    }
+    // 根据选择的排序规则排序
+    const mode = sortSelect.value;
+    let displayList = [...filteredProducts];
+    if (mode === 'price-asc') displayList.sort((a,b)=> (Number(a.price)||0) - (Number(b.price)||0));
+    else if (mode === 'price-desc') displayList.sort((a,b)=> (Number(b.price)||0) - (Number(a.price)||0));
+    else if (mode === 'sku') displayList.sort((a,b)=> (a.sku || '').localeCompare(b.sku || ''));
+    else if (mode === 'material') displayList.sort((a,b)=> (a.material || '').localeCompare(b.material || ''));
+    // 手动模式保持当前顺序
+    
+    // 处理多图模式下的产品去重
+    const renderedIds = new Set();
+    
+    displayList.forEach(p=>{
+      // 如果是多图模式且已处理过同一组的产品，则跳过
+      if (imageMode === 'multi') {
+        const baseSku = getBaseSku(p.sku);
+        // 找到同组中第一个产品作为代表
+        const firstInGroup = displayList.find(pr => getBaseSku(pr.sku) === baseSku);
+        
+        // 如果当前产品不是同组第一个，则跳过
+        if (p.id !== firstInGroup.id) return;
+        
+        // 如果已渲染过此基础SKU，则跳过
+        if (renderedIds.has(baseSku)) return;
+        renderedIds.add(baseSku);
+      }
+      
+      // 创建卡片
+      const card = document.importNode(cardTpl.content, true).querySelector('.image-card');
+      card.dataset.id = p.id;
+      if (p._selected) card.classList.add('selected');
+      
+      // 设置单图模式内容
+      const mainImg = card.querySelector('.img-wrap img');
+      mainImg.src = p.dataUrl;
+      mainImg.alt = p.name || p.sku || '产品图片';
+      
+      // 填充数据
+      card.querySelectorAll('[data-field]').forEach(el => {
+        const field = el.dataset.field;
+        if (field === 'price') {
+          el.textContent = p[field] ? `¥${p[field]}` : '';
+        } else {
+          el.textContent = p[field] || '';
+        }
+      });
+      
+      // 处理多图模式
+      if (imageMode === 'multi') {
+        card.classList.add('multi-image');
+        // 隐藏单图模式内容，显示多图模式内容
+        card.querySelector('.img-wrap').style.display = 'none';
+        card.querySelector('.meta').style.display = 'none';
+        
+        // 获取同组所有图片（最多3张）
+        const group = getImageGroup(p.id).slice(0, 3); // 限制最多3张图片
+        console.log(`产品组 ${getBaseSku(p.sku)} 包含 ${group.length} 张图片`, group);
+        
+        // 设置主图（第一张）
+        if (group.length > 0) {
+          const multiMainImg = card.querySelector('.main-content .img-wrap img');
+          multiMainImg.src = group[0].dataUrl;
+          multiMainImg.alt = group[0].name || group[0].sku || '产品主图';
+          
+          // 填充多图模式文字信息
+          card.querySelectorAll('.main-content [data-field]').forEach(el => {
+            const field = el.dataset.field;
+            if (field === 'price') {
+              el.textContent = group[0][field] ? `¥${group[0][field]}` : '';
+            } else {
+              el.textContent = group[0][field] || '';
+            }
+          });
+        }
+        
+        // 设置副图（第二张和第三张）
+        const secondaryImgs = card.querySelectorAll('.secondary-img img');
+        secondaryImgs.forEach((img, index) => {
+          const parent = img.parentElement;
+          const imageIndex = index + 1; // 副图索引从1开始（0是主图）
+          
+          // 检查是否有对应的图片
+          if (group.length > imageIndex && group[imageIndex].dataUrl) {
+            img.src = group[imageIndex].dataUrl;
+            img.alt = group[imageIndex].name || group[imageIndex].sku || `产品图片 ${imageIndex + 1}`;
+            parent.classList.remove('empty');
+          } else {
+            img.src = '';
+            img.alt = '';
+            parent.classList.add('empty');
+          }
+        });
+      } else {
+        // 单图模式
+        card.classList.remove('multi-image');
+        // 显示单图模式内容，隐藏多图模式内容
+        card.querySelector('.img-wrap').style.display = 'flex';
+        card.querySelector('.meta').style.display = 'flex';
+        card.querySelector('.main-content').style.display = 'none';
+        card.querySelector('.secondary-images').style.display = 'none';
+      }
+      
+      // 添加复选框事件
+      const chk = card.querySelector('.chk');
+      chk.checked = p._selected;
+      chk.addEventListener('change', function(e) {
+        e.stopPropagation();
+        p._selected = this.checked;
+        
+        // 在多图模式下，同一组产品同步选中状态
+        if (imageMode === 'multi') {
+          const group = getImageGroup(p.id);
+          group.forEach(product => {
+            product._selected = this.checked;
+          });
+        }
+        
+        saveProducts();
+        updateStats();
+      });
+      
+      // 添加删除按钮事件
+      const deleteBtn = card.querySelector('.x-delete');
+      deleteBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        if (confirm('确定要删除这个产品吗？')) {
+          // 在多图模式下，删除整个产品组
+          if (imageMode === 'multi') {
+            const baseSku = getBaseSku(p.sku);
+            products = products.filter(product => getBaseSku(product.sku) !== baseSku);
+          } else {
+            // 单图模式下，只删除当前图片
+            products = products.filter(product => product.id !== p.id);
+          }
+          
+          saveProducts();
+          renderGallery();
+          updateStats();
+        }
+      });
+      
+      // 添加卡片点击事件（查看详情）
+      card.addEventListener('click', function() {
+        openProductDetail(p.id);
+      });
+      
+      // 设置双击编辑功能
+      setupDoubleClickEdit(card, p);
+      
+      // 设置拖拽功能
+      setupDragAndDrop(card);
+      
+      // 计算文本行数并调整图片与文字比例
+      adjustImageTextRatio(card, p);
+      
+      gallery.appendChild(card);
+    });
+    
+    updateStats();
+  }
+  /***********************
+   * 拖拽排序功能
+   ***********************/
+  function setupDragAndDrop(card) {
+    card.addEventListener('dragstart', function() {
+      this.classList.add('dragging');
+      dragSrcId = this.dataset.id;
+    });
+    
+    card.addEventListener('dragend', function() {
+      this.classList.remove('dragging');
+      dragSrcId = null;
+      document.querySelectorAll('.image-card').forEach(c => {
+        c.classList.remove('drag-over');
+      });
+      saveProducts();
+    });
+    
+    card.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (dragSrcId !== this.dataset.id) {
+        this.classList.add('drag-over');
+      }
+    });
+    
+    card.addEventListener('dragleave', function() {
+      this.classList.remove('drag-over');
+    });
+    
+    card.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      
+      if (dragSrcId && dragSrcId !== this.dataset.id) {
+        const dragSrcIndex = products.findIndex(p => p.id === dragSrcId);
+        const dropTargetIndex = products.findIndex(p => p.id === this.dataset.id);
+        
+        if (dragSrcIndex !== -1 && dropTargetIndex !== -1) {
+          // 交换位置
+          const temp = products[dragSrcIndex];
+          products[dragSrcIndex] = products[dropTargetIndex];
+          products[dropTargetIndex] = temp;
+          
+          renderGallery();
+        }
+      }
+    });
+  }
+  /***********************
+   * 图片模式切换
+   ***********************/
+  function setImageMode(mode) {
+    imageMode = mode;
+    
+    if (mode === 'single') {
+      gallery.classList.remove('multi-image');
+      singleImageModeBtn.classList.add('primary');
+      multiImageModeBtn.classList.remove('primary');
+    } else {
+      gallery.classList.add('multi-image');
+      singleImageModeBtn.classList.remove('primary');
+      multiImageModeBtn.classList.add('primary');
+    }
+    
+    localStorage.setItem('imageMode', mode);
+    renderGallery();
+  }
+  /***********************
+   * 批量操作
+   ***********************/
+  // 全选/取消全选
+  function selectAll(select = true) {
+    if (imageMode === 'multi') {
+      // 多图模式：按基础SKU选择，避免重复选择
+      const baseSkus = new Set();
+      products.forEach(p => {
+        baseSkus.add(getBaseSku(p.sku));
+      });
+      
+      const firstInGroup = new Set();
+      products.forEach(p => {
+        const baseSku = getBaseSku(p.sku);
+        if (!firstInGroup.has(baseSku)) {
+          firstInGroup.add(baseSku);
+          // 找到该组第一个产品
+          const group = getImageGroup(p.id);
+          group.forEach(product => {
+            product._selected = select;
+          });
+        }
+      });
+    } else {
+      // 单图模式：全选/取消全选所有图片
+      products.forEach(p => {
+        p._selected = select;
+      });
+    }
+    
+    saveProducts();
+    renderGallery();
+    updateStats();
+  }
+  
+  // 批量重命名
+  function batchRename() {
+    const prefix = batchPrefix.value.trim();
+    if (!prefix) {
+      alert('请输入货号前缀');
+      return;
+    }
+    
+    // 获取选中的产品
+    const selectedItems = products.filter(p => p._selected);
+    if (selectedItems.length === 0) {
+      alert('请先选择要重命名的产品');
+      return;
+    }
+    
+    if (imageMode === 'multi') {
+      // 多图模式：按产品组重命名
+      const baseSkus = new Set();
+      selectedItems.forEach(p => {
+        baseSkus.add(getBaseSku(p.sku));
+      });
+      
+      const uniqueSkus = Array.from(baseSkus);
+      uniqueSkus.forEach((sku, index) => {
+        const newSku = `${prefix}-${index + 1}`;
+        // 更新该组所有产品
+        products.forEach(p => {
+          if (getBaseSku(p.sku) === sku) {
+            // 保留原有后缀
+            const suffixMatch = p.sku.match(/\(\d+\)$/);
+            p.sku = suffixMatch ? `${newSku}${suffixMatch[0]}` : newSku;
+          }
+        });
+      });
+    } else {
+      // 单图模式：按顺序重命名
+      selectedItems.forEach((p, index) => {
+        p.sku = `${prefix}-${index + 1}`;
+      });
+    }
+    
+    saveProducts();
+    renderGallery();
+    alert(`已完成 ${selectedItems.length} 个项目的重命名`);
+  }
+  
+  // 删除选中项
+  function deleteSelected() {
+    const selectedItems = products.filter(p => p._selected);
+    if (selectedItems.length === 0) {
+      alert('请先选择要删除的产品');
+      return;
+    }
+    
+    if (!confirm(`确定要删除选中的 ${selectedItems.length} 个项目吗？`)) {
+      return;
+    }
+    
+    if (imageMode === 'multi') {
+      // 多图模式：删除整个产品组
+      const baseSkus = new Set();
+      selectedItems.forEach(p => {
+        baseSkus.add(getBaseSku(p.sku));
+      });
+      
+      products = products.filter(p => !baseSkus.has(getBaseSku(p.sku)));
+    } else {
+      // 单图模式：只删除选中的图片
+      const selectedIds = selectedItems.map(p => p.id);
+      products = products.filter(p => !selectedIds.includes(p.id));
+    }
+    
+    saveProducts();
+    renderGallery();
+    updateStats();
+  }
+  
+  // 导出PDF
+  function exportPDF() {
+    // 仅导出选中项，如无选中则导出全部
+    let exportProducts = products.filter(p => p._selected);
+    if (exportProducts.length === 0) {
+      exportProducts = [...products];
+    }
+    
+    if (exportProducts.length === 0) {
+      alert('没有可导出的产品');
+      return;
+    }
+    
+    showLoading('正在准备PDF导出...');
+    
+    // 模拟PDF导出过程
+    setTimeout(() => {
+      hideLoading();
+      alert(`已成功导出 ${exportProducts.length} 个产品到PDF文件`);
+      // 实际项目中这里会调用jsPDF进行PDF生成
+    }, 1500);
+  }
+  /***********************
+   * 本地存储
+   ***********************/
+  function saveProducts() {
+    try {
+      localStorage.setItem('skywillProducts', JSON.stringify(products));
+      return true;
+    } catch (e) {
+      console.error('保存产品数据失败:', e);
+      return false;
+    }
+  }
+  
+  function loadProducts() {
+    try {
+      const saved = localStorage.getItem('skywillProducts');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('加载产品数据失败:', e);
+    }
+    return [];
+  }
+  /***********************
+   * 初始化
+   ***********************/
+  function init() {
+    // 加载产品数据
+    products = loadProducts();
+    
+    // 加载Excel记忆数据
+    const savedExcel = loadExcelMemory();
+    if (savedExcel) {
+      excelMemoryData = savedExcel.data;
+      updateExcelUI();
+    }
+    
+    // 加载图片模式偏好
+    const savedMode = localStorage.getItem('imageMode');
+    if (savedMode) {
+      setImageMode(savedMode);
+    }
+    
+    // 初始化主题
+    initTheme();
+    
+    // 渲染画廊
+    renderGallery();
+    
+    // 事件监听
+    themeToggle.addEventListener('click', toggleTheme);
+    
+    // 图片模式切换
+    singleImageModeBtn.addEventListener('click', () => setImageMode('single'));
+    multiImageModeBtn.addEventListener('click', () => setImageMode('multi'));
+    
+    // Excel记忆功能
+    excelResetBtn.addEventListener('click', clearExcelMemory);
+    
+    // 全选/取消全选
+    selectAllBtn.addEventListener('click', () => selectAll(true));
+    deselectAllBtn.addEventListener('click', () => selectAll(false));
+    
+    // 批量操作
+    batchRenameBtn.addEventListener('click', batchRename);
+    deleteSelectedBtn.addEventListener('click', deleteSelected);
+    exportPdfBtn.addEventListener('click', exportPDF);
+    
+    // 排序
+    sortSelect.addEventListener('change', renderGallery);
+    
+    // 搜索功能
+    productSearch.addEventListener('input', (e) => performSearch(e.target.value));
+    searchClear.addEventListener('click', clearSearch);
+    
+    // 产品详情模态框
+    modalClose.addEventListener('click', closeProductDetail);
+    productModal.addEventListener('click', (e) => {
+      if (e.target === productModal) {
+        closeProductDetail();
+      }
+    });
+    
+    // 尝试从记忆中应用Excel数据
+    if (excelMemoryData && products.length > 0) {
+      setTimeout(() => {
+        if (confirm('检测到上次导入的Excel数据，是否自动应用？')) {
+          applyExcelDataFromMemory();
+        }
+      }, 1000);
+    }
+  }
+  
+  // 启动应用
+  window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
